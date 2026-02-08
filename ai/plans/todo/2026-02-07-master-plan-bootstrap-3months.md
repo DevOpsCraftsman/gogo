@@ -331,28 +331,44 @@ my-project/
 
 ## 3-Month Roadmap
 
+### Sprint 0: Quality Pipeline (before any feature code)
+
+**Goal**: Full Extreme Vibe Coding infrastructure in place. Zero feature code, 100% quality tooling.
+**Details**: `2026-02-08-sprint0-quality-pipeline.md`
+**Manifesto**: `../../EXTREME-VIBE-CODING.md`
+
+| Step | Deliverables                                                                    |
+|------|---------------------------------------------------------------------------------|
+| S0.1 | `go mod init`, directory structure (hexagonal), `go.mod`                        |
+| S0.2 | Arch tests: hex boundary enforcement (first tests in the repo)                  |
+| S0.3 | `.golangci.yaml` (strict, all dials to 11), NilAway                            |
+| S0.4 | Makefile: `lint`, `test`, `coverage`, `mutation`, `security`, `arch`, `all`     |
+| S0.5 | Pre-commit hooks: formatting, linting, secret detection, arch tests             |
+| S0.6 | Pre-push hooks: full test suite, coverage 99%, security scan                    |
+| S0.7 | GitHub Actions: full gated pipeline (lint + test + coverage + security + arch)  |
+| S0.8 | Claude Code rules (`.claude/rules/`) + hooks (`.claude/settings.json`)          |
+| S0.9 | BDD framework setup (Godog + first empty feature file)                          |
+| S0.10| Mutation testing, `govulncheck`, `gitleaks`, license check                      |
+
 ### Month 1: VCS Core + CLI (Weeks 1-4)
 
 **Goal**: `gg init && gg commit -m "first" && gg log && gg status` works locally.
 
 | Week | Deliverables                                                                    |
 |------|---------------------------------------------------------------------------------|
-| W1   | Bootstrap: `go mod init`, directory structure, Makefile, `.golangci.yaml`       |
-|      | GitHub Actions for lint + test                                                  |
-|      | Arch tests skeleton (hex boundaries)                                            |
-|      | Domain: Commit, CommitID, CommitState, Author, FileChange                       |
+| W1   | Domain: Commit, CommitID, CommitState, Author, FileChange                       |
 |      | Port: VCSBackend interface (1st draft)                                          |
+|      | Memory adapter: in-memory VCSBackend (for fast unit tests from day 0)           |
+|      | Unit tests for domain (table-driven, pure Go)                                  |
 | W2   | Git adapter: go-git implements VCSBackend (Init, StageAll, CreateCommit)        |
 |      | `gg init`: creates `.gogo/` + init git backend                                 |
 |      | `gg commit`: stage all + commit                                                |
 |      | Acceptance test: "Given empty dir, when gg init, then .gogo/ exists"           |
 | W3   | `gg status`: working tree changes + commits pending/rejected                    |
 |      | `gg log`: trunk history                                                        |
-|      | Memory adapter: in-memory VCSBackend for fast tests                            |
 |      | Acceptance tests: commit, status, log                                          |
 | W4   | Error handling, edge cases (empty repo, nothing to commit)                     |
 |      | CLI polish: colors, help text                                                  |
-|      | NilAway + strict linters. All tests green.                                     |
 |      | **Release v0.1.0-alpha**                                                       |
 
 ### Month 2: Pipeline Engine + Gated Commits + Server (Weeks 5-8)
@@ -398,17 +414,32 @@ my-project/
 
 ---
 
-## Test Strategy
+## Test Strategy (Extreme Vibe Coding)
 
 ### Pyramid
 
 ```
-             /    E2E     \        <- Few: gg binary against gogod
-            /  Acceptance  \       <- Medium: BDD Godog/Gherkin
-           /  Integration   \      <- Medium: adapters (git, Docker, HTTP)
-          /      Unit        \     <- Many: domain + app (pure Go)
-         /   Arch Tests       \    <- Always: hex boundaries
+              /  Chaos / Resilience  \     <- Periodic: fault injection
+             /      E2E / Smoke       \    <- Few: gg binary against gogod
+            /     Acceptance (BDD)     \   <- Medium: Godog/Gherkin scenarios
+           /    Integration Tests       \  <- Medium: adapters (git, Docker, HTTP)
+          /      Unit Tests (fast)       \ <- Many: domain + app (pure Go)
+         /   Property-Based Tests         \<- Many: generated inputs, invariants
+        /     Mutation Testing             \<- Always: validates test effectiveness
+       /    Architectural Tests             \<- Always: hex boundary enforcement
+      /      Static Analysis                 \<- Always: linters, NilAway, govulncheck
 ```
+
+### Thresholds (enforced in pipeline, no exceptions)
+
+| Practice                   | Threshold                                              |
+|----------------------------|--------------------------------------------------------|
+| Code coverage              | 99% minimum                                            |
+| Mutation score             | 85%+ (tests must catch injected bugs)                  |
+| Architecture compliance    | Zero violations                                        |
+| Security scan              | Zero high/critical findings                            |
+| Dependency vulnerabilities | Zero known vulns in production deps                    |
+| Linting                    | Zero warnings (strict mode)                            |
 
 ### Unit Tests (domain + app)
 
@@ -484,11 +515,15 @@ Feature: Gated commit via push
 
 ### Dev / Quality
 
-| Lib                                   | Usage                            |
+| Lib / Tool                            | Usage                            |
 |---------------------------------------|----------------------------------|
-| `github.com/golangci/golangci-lint`   | Linter aggregator                |
+| `github.com/golangci/golangci-lint`   | Linter aggregator (strict)       |
 | `go.uber.org/nilaway`                 | Nil safety static analysis       |
 | `github.com/mstrYoda/go-arctest`      | Arch tests hex boundaries        |
+| `github.com/zimmski/go-mutesting`     | Mutation testing                 |
+| `golang.org/x/vuln/cmd/govulncheck`  | Dependency vulnerability scan    |
+| `github.com/zricethezav/gitleaks`     | Secret detection (pre-commit)    |
+| `github.com/google/go-licenses`       | License compliance check         |
 | `log/slog` (stdlib)                   | Structured logging               |
 
 ### Not Using
